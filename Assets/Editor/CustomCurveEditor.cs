@@ -31,7 +31,7 @@ public class CustomCurveEdit2 : EditorWindow
         curveCtrl.memberCurveWrapper = new CustomMemberCurveWrapper();
         gradientCtrl.gradient = new CustomGradient();
         state.translation = new Vector2(0, 100);
-        state.scale = new Vector2(40, 500);       
+        state.scale = new Vector2(45, 500);       
     }
 
     private const float TOOLBAR_HEIGHT = 17f;
@@ -64,17 +64,15 @@ public class CustomCurveEdit2 : EditorWindow
 
   
         GUILayout.BeginArea(curveArea);
-        GUILayout.BeginVertical(GUILayout.Width(base.position.width - CONTROL_WIDTH));
-        //gradientCtrl.Draw(state);
-        GUILayout.EndVertical();
-
+        Rect validArea = new Rect(state.translation.x, curveArea.height - state.translation.y - state.scale.y, 24 * state.scale.x, state.scale.y);
+        EditorGUI.DrawRect(validArea, new Color(0.6f, 0.6f, 0.6f));
         GUILayout.BeginVertical(GUILayout.Width(base.position.width - CONTROL_WIDTH));
         UpdateTranslationAndScale(curveArea);
         DrawGrid(curveArea);
 
+        //gradientCtrl.Draw(state);
         //gradientCtrl.PreUpdate(state, curveArea);
         //gradientCtrl.HandleInput(state, curveArea);
-
 
         curveCtrl.PreUpdate(state, curveArea);
         curveCtrl.HandleInput(state, curveArea);
@@ -99,7 +97,7 @@ public class CustomCurveEdit2 : EditorWindow
         {
             strideY *= 10;
         }
-        while (gridArea.width / strideX < 10)
+        while (gridArea.width / strideX < 2)
         {
             strideX /= 10;
         }

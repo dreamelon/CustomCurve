@@ -14,19 +14,19 @@ public class CustomGradient
 
     public CustomCurveWrapper[] AnimationCurves;
 
-
     public CustomGradient()
     {
-        CustomCurveWrapper wrapper1 = new CustomCurveWrapper(Color.red, new AnimationCurve(new Keyframe(0.0f, 0.0f), new Keyframe(24f, 0.0f)), 1);
+        CustomCurveWrapper wrapper1 = new CustomCurveWrapper(Color.red, new AnimationCurve(), 1);
         CustomCurveWrapper wrapper2 = new CustomCurveWrapper()
         {
-            Curve = new AnimationCurve(new Keyframe(0.0f, 0.5f), new Keyframe(24f, 0.0f)),
+            Curve = new AnimationCurve(),
             Color = Color.green,
             Id = 2
         };
         CustomCurveWrapper wrapper3 = new CustomCurveWrapper()
         {
-            Curve = new AnimationCurve(new Keyframe(0.0f, 0.0f), new Keyframe(24f, 0.5f)),
+            //new Keyframe(0.0f, 0.0f), new Keyframe(24f, 0.5f)
+            Curve = new AnimationCurve(),
             Color = Color.blue,
             Id = 3
         };

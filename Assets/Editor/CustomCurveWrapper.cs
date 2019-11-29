@@ -25,57 +25,23 @@ public class CustomCurveWrapper
 
     public int AddKey(float time, float value)
     {
-        Keyframe key = new Keyframe();
-        Keyframe keyframe2 = new Keyframe();
-        for (int i = 0; i < (this.curve.length - 1); i++)
-        {
-            Keyframe keyframe3 = this.curve[i];
-            Keyframe keyframe4 = this.curve[i + 1];
-            if ((keyframe3.time < time) && (time < keyframe4.time))
-            {
-                key = keyframe3;
-                keyframe2 = keyframe4;
-            }
-        }
-        Keyframe keyframe5 = new Keyframe(time, value);
-        int index = this.curve.AddKey(keyframe5);
-        if (index > 0)
-        {
-            this.curve.MoveKey(index - 1, key);
-            if (this.IsAuto(index - 1))
-            {
-                this.SmoothTangents(index - 1, 0f);
-            }
-            if (this.IsBroken(index - 1) && this.IsRightLinear(index - 1))
-            {
-                this.SetKeyRightLinear(index - 1);
-            }
-        }
-        if (index < (this.curve.length - 1))
-        {
-            this.curve.MoveKey(index + 1, keyframe2);
-            if (this.IsAuto(index + 1))
-            {
-                this.SmoothTangents(index + 1, 0f);
-            }
-            if (this.IsBroken(index + 1) && this.IsLeftLinear(index + 1))
-            {
-                this.SetKeyLeftLinear(index + 1);
-            }
-        }
-        for (int j = this.curve.length - 1; j >= 0; j--)
-        {
-            CustomKeyframeWrapper keyframeWrapper = this.GetKeyframeWrapper(j);
-            if (keyframeWrapper.index >= index)
-            {
-                keyframeWrapper.index++;
-            }
-        }
-        this.KeyframeControls.Add(this.createKeyframeWrapper(index));
+        Keyframe kf = new Keyframe(time, value);
+        int index = this.curve.AddKey(kf);
+
+        //for (int j = this.curve.length - 1; j >= 0; j--)
+        //{
+        //    //修改KeyframeControls中存储的关键点的序号，都加上1
+        //    CustomKeyframeWrapper keyframeWrapper = this.GetKeyframeWrapper(j);
+        //    //if (keyframeWrapper.index >= index)
+        //    //{
+        //    //    keyframeWrapper.index++;
+        //    //}
+        //}
+        this.KeyframeControls.Add(this.CreateKeyframeWrapper(curve.length - 1));
         return index;
     }
 
-    private CustomKeyframeWrapper createKeyframeWrapper(int index) => 
+    private CustomKeyframeWrapper CreateKeyframeWrapper(int index) => 
         new CustomKeyframeWrapper { index = index };
 
     public float Evaluate(float time) => 
@@ -103,26 +69,27 @@ public class CustomCurveWrapper
 
     public CustomKeyframeWrapper GetKeyframeWrapper(int i)
     {
-        foreach (CustomKeyframeWrapper wrapper in this.KeyframeControls)
-        {
-            if (i == wrapper.index)
-            {
-                return wrapper;
-            }
-        }
-        CustomKeyframeWrapper item = this.createKeyframeWrapper(i);
-        this.KeyframeControls.Add(item);
-        return item;
+        //foreach (CustomKeyframeWrapper wrapper in this.KeyframeControls)
+        //{
+        //    if (i == wrapper.index)
+        //    {
+        //        return wrapper;
+        //    }
+        //}
+        //CustomKeyframeWrapper item = this.CreateKeyframeWrapper(i);
+        //this.KeyframeControls.Add(item);
+        //return item;
+        return KeyframeControls[i];
     }
 
     public Vector2 GetOutTangentScreenPosition(int index) => 
         this.GetKeyframeWrapper(index).OutTangentControlPointPosition;
 
-    private void initializeKeyframeWrappers()
+    private void InitializeKeyframeWrappers()
     {
         for (int i = 0; i < this.curve.length; i++)
         {
-            this.KeyframeControls.Add(this.createKeyframeWrapper(i));
+            this.KeyframeControls.Add(this.CreateKeyframeWrapper(i));
         }
     }
 
@@ -199,137 +166,28 @@ public class CustomCurveWrapper
     public int MoveKey(int index, Keyframe kf)
     {
         int i = this.curve.MoveKey(index, kf);
-        this.GetKeyframeWrapper(index).index = -99;
-        this.GetKeyframeWrapper(i).index = index;
-        this.GetKeyframeWrapper(-99).index = i;
-        if (this.IsAuto(i))
-        {
-            this.SmoothTangents(i, 0f);
-        }
-        if (this.IsBroken(i))
-        {
-            if (this.IsLeftLinear(i))
-            {
-                this.SetKeyLeftLinear(i);
-            }
-            if (this.IsRightLinear(i))
-            {
-                this.SetKeyRightLinear(i);
-            }
-        }
-        if (index > 0)
-        {
-            if (this.IsAuto(index - 1))
-            {
-                this.SmoothTangents(index - 1, 0f);
-            }
-            if (this.IsBroken(index - 1) && this.IsRightLinear(index - 1))
-            {
-                this.SetKeyRightLinear(index - 1);
-            }
-        }
-        if (index < (this.curve.length - 1))
-        {
-            if (this.IsAuto(index + 1))
-            {
-                this.SmoothTangents(index + 1, 0f);
-            }
-            if (this.IsBroken(index + 1) && this.IsLeftLinear(index + 1))
-            {
-                this.SetKeyLeftLinear(index + 1);
-            }
-        }
         return i;
     }
 
-    internal void RemoveAtTime(float time)
-    {
-        int i = -1;
-        for (int j = 0; j < this.curve.length; j++)
-        {
-            if (this.curve.keys[j].time == time)
-            {
-                i = j;
-            }
-        }
-        if (i >= 0)
-        {
-            CustomKeyframeWrapper keyframeWrapper = this.GetKeyframeWrapper(i);
-            this.KeyframeControls.Remove(keyframeWrapper);
-            for (int k = 0; k < this.curve.length; k++)
-            {
-                CustomKeyframeWrapper wrapper2 = this.GetKeyframeWrapper(k);
-                if (wrapper2.index >= i)
-                {
-                    wrapper2.index--;
-                }
-            }
-            this.curve.RemoveKey(i);
-            if (i > 0)
-            {
-                if (this.IsAuto(i - 1))
-                {
-                    this.SmoothTangents(i - 1, 0f);
-                }
-                if (this.IsBroken(i - 1) && this.IsRightLinear(i - 1))
-                {
-                    this.SetKeyRightLinear(i - 1);
-                }
-            }
-            if (i < this.curve.length)
-            {
-                if (this.IsAuto(i))
-                {
-                    this.SmoothTangents(i, 0f);
-                }
-                if (this.IsBroken(i) && this.IsLeftLinear(i))
-                {
-                    this.SetKeyLeftLinear(i);
-                }
-            }
-        }
-    }
-
     public void RemoveKey(int id)
-    {
-        CustomKeyframeWrapper keyframeWrapper = this.GetKeyframeWrapper(id);
-        this.KeyframeControls.Remove(keyframeWrapper);
-        for (int i = 0; i < this.curve.length; i++)
-        {
-            CustomKeyframeWrapper wrapper2 = this.GetKeyframeWrapper(i);
-            if (wrapper2.index >= id)
-            {
-                wrapper2.index--;
-            }
-        }
+    {        
+        this.KeyframeControls.RemoveAt(curve.length-1);      
         this.curve.RemoveKey(id);
-        if (id > 0)
-        {
-            if (this.IsAuto(id - 1))
-            {
-                this.SmoothTangents(id - 1, 0f);
-            }
-            if (this.IsBroken(id - 1) && this.IsRightLinear(id - 1))
-            {
-                this.SetKeyRightLinear(id - 1);
-            }
-        }
-        if (id < this.curve.length)
-        {
-            if (this.IsAuto(id))
-            {
-                this.SmoothTangents(id, 0f);
-            }
-            if (this.IsBroken(id) && this.IsLeftLinear(id))
-            {
-                this.SetKeyLeftLinear(id);
-            }
-        }
     }
 
     public void SetInTangentScreenPosition(int index, Vector2 screenPosition)
     {
         this.GetKeyframeWrapper(index).InTangentControlPointPosition = screenPosition;
+    }
+
+    public void SetOutTangentScreenPosition(int index, Vector2 screenPosition)
+    {
+        this.GetKeyframeWrapper(index).OutTangentControlPointPosition = screenPosition;
+    }
+
+    public void SetKeyframeScreenPosition(int index, Vector2 screenPosition)
+    {
+        this.GetKeyframeWrapper(index).ScreenPosition = screenPosition;
     }
 
     internal void SetKeyAuto(int index)
@@ -351,11 +209,6 @@ public class CustomCurveWrapper
             tangentMode = 1
         };
         this.curve.MoveKey(index, key);
-    }
-
-    public void SetKeyframeScreenPosition(int index, Vector2 screenPosition)
-    {
-        this.GetKeyframeWrapper(index).ScreenPosition = screenPosition;
     }
 
     internal void SetKeyFreeSmooth(int index)
@@ -434,24 +287,12 @@ public class CustomCurveWrapper
         this.curve.MoveKey(index, key);
     }
 
-    public void SetOutTangentScreenPosition(int index, Vector2 screenPosition)
-    {
-        this.GetKeyframeWrapper(index).OutTangentControlPointPosition = screenPosition;
-    }
-
-    public void SmoothTangents(int index, float weight)
-    {
-        this.curve.SmoothTangents(index, weight);
-    }
-
-
-
     public AnimationCurve Curve
     {
         set
         {
             this.curve = value;
-            this.initializeKeyframeWrappers();
+            this.InitializeKeyframeWrappers();
         }
         get
         {

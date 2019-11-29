@@ -175,7 +175,7 @@ public class CustomGradientCtrl : CommonCtrl
         HandleGradientInput(state);
     }
 
-    void HandleGradientInput(ControlState state)
+    private void HandleGradientInput(ControlState state)
     {
         Event guiEvent = Event.current;
         Rect temp = gradientPreviewRect;
@@ -259,7 +259,7 @@ public class CustomGradientCtrl : CommonCtrl
                             {
                                 break;
                             }
-                            if (this.selection.KeyId == i)
+                            if (flag)
                             {
                                 this.ShowKeyframeContextMenu(wrapper, i);
                                 GUIUtility.hotControl = 0;
@@ -298,9 +298,126 @@ public class CustomGradientCtrl : CommonCtrl
                     Event.current.Use();
                 }
             }
+
         }
+        this.HandleKeyframeTangentInput(state, curveArea);
     }
 
+
+    //调整左右切线的斜率
+    private void HandleKeyframeTangentInput(ControlState state, Rect curveArea)
+    {
+        scale = state.scale;
+        translation = state.translation;
+        foreach (var wrapper in gradient.AnimationCurves)
+        {
+            for (int i = 0; i < wrapper.KeyframeCount; i++)
+            {
+                int controlID;
+                int num5;
+                Keyframe keyframe = wrapper.GetKeyframe(i);
+                CustomKeyframeWrapper keyframeWrapper = wrapper.GetKeyframeWrapper(i);
+                bool flag = ((this.selection.KeyId == i)) && (this.selection.CurveId == wrapper.Id);
+
+                if (!flag || wrapper.IsAuto(i))
+                {
+                    continue;
+                }
+                if (((i > 0) && !wrapper.IsLeftLinear(i)) && !wrapper.IsLeftConstant(i))
+                {
+                    Vector2 vector = new Vector2(keyframeWrapper.InTangentControlPointPosition.x - keyframeWrapper.ScreenPosition.x, keyframeWrapper.InTangentControlPointPosition.y - keyframeWrapper.ScreenPosition.y);
+                    vector.Normalize();
+                    vector = (Vector2)(vector * 30f);
+                    Rect rect = new Rect((keyframeWrapper.ScreenPosition.x + vector.x) - 4f, (keyframeWrapper.ScreenPosition.y + vector.y) - 4f, 8f, 8f);
+                    controlID = GUIUtility.GetControlID("TangentIn".GetHashCode(), FocusType.Passive);
+                    switch (Event.current.GetTypeForControl(controlID))
+                    {
+                        case EventType.MouseDown:
+                            if (rect.Contains(Event.current.mousePosition))
+                            {
+                                GUIUtility.hotControl = controlID;
+                                Event.current.Use();
+                            }
+                            break;
+
+                        case EventType.MouseUp:
+                            if (GUIUtility.hotControl == controlID)
+                            {
+                                GUIUtility.hotControl = 0;
+                            }
+                            break;
+
+                        case EventType.MouseDrag:
+                            goto Label_0213;
+                    }
+                }
+                goto Label_031E;
+            Label_0213:
+                if (GUIUtility.hotControl == controlID)
+                {
+                    Vector2 vector2 = new Vector2((Event.current.mousePosition.x - translation.x) / scale.x, (curveArea.height - translation.y - Event.current.mousePosition.y) / scale.y);
+                    Vector2 vector3 = vector2 - new Vector2(keyframe.time, keyframe.value);
+                    float inTangent = vector3.y / vector3.x;
+                    float outTangent = keyframe.outTangent;
+                    if (wrapper.IsFreeSmooth(i))
+                    {
+                        outTangent = inTangent;
+                    }
+                    Keyframe kf = new Keyframe(keyframe.time, keyframe.value, inTangent, outTangent)
+                    {
+                        tangentMode = keyframe.tangentMode
+                    };
+                    wrapper.MoveKey(i, kf);
+                }
+            Label_031E:
+                if (((i < (wrapper.KeyframeCount - 1)) && !wrapper.IsRightLinear(i)) && !wrapper.IsRightConstant(i))
+                {
+                    Vector2 vector4 = new Vector2(keyframeWrapper.OutTangentControlPointPosition.x - keyframeWrapper.ScreenPosition.x, keyframeWrapper.OutTangentControlPointPosition.y - keyframeWrapper.ScreenPosition.y);
+                    vector4.Normalize();
+                    vector4 = (Vector2)(vector4 * 30f);
+                    Rect rect2 = new Rect((keyframeWrapper.ScreenPosition.x + vector4.x) - 4f, (keyframeWrapper.ScreenPosition.y + vector4.y) - 4f, 8f, 8f);
+                    num5 = GUIUtility.GetControlID("TangentOut".GetHashCode(), FocusType.Passive);
+                    switch (Event.current.GetTypeForControl(num5))
+                    {
+                        case EventType.MouseDown:
+                            if (rect2.Contains(Event.current.mousePosition))
+                            {
+                                GUIUtility.hotControl = num5;
+                                Event.current.Use();
+                            }
+                            break;
+
+                        case EventType.MouseUp:
+                            if (GUIUtility.hotControl == num5)
+                            {
+                                GUIUtility.hotControl = 0;
+                            }
+                            break;
+
+                        case EventType.MouseDrag:
+                            if (GUIUtility.hotControl == num5)
+                            {
+                                Vector2 vector5 = new Vector2((Event.current.mousePosition.x - translation.x) / scale.x, (curveArea.height - translation.y - Event.current.mousePosition.y) / scale.y);
+                                Vector2 vector6 = new Vector2(keyframe.time, keyframe.value) - vector5;
+                                float num6 = vector6.y / vector6.x;
+                                float num7 = keyframe.inTangent;
+                                if (wrapper.IsFreeSmooth(i))
+                                {
+                                    num7 = num6;
+                                }
+                                Keyframe keyframe3 = new Keyframe(keyframe.time, keyframe.value, num7, num6)
+                                {
+                                    tangentMode = keyframe.tangentMode
+                                };
+                                wrapper.MoveKey(i, keyframe3);
+                            }
+                            break;
+                    }
+                }
+                continue;
+            }
+        }
+    }
     //添加关键帧
     private void AddKey(object userdata)
     {
@@ -379,7 +496,10 @@ public class CustomGradientCtrl : CommonCtrl
         KeyframeContext context = userData as KeyframeContext;
         if ((context != null) && !context.curveWrapper.IsAuto(context.key))
         {
-            context.curveWrapper.SetKeyAuto(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyAuto(context.key);
+            }
         }
     }
 
@@ -391,7 +511,10 @@ public class CustomGradientCtrl : CommonCtrl
             Keyframe keyframe = context.curveWrapper.GetKeyframe(context.key);
             if (((keyframe.tangentMode != 0) || (keyframe.inTangent != 0f)) || (keyframe.outTangent != 0f))
             {
-                context.curveWrapper.FlattenKey(context.key);
+                foreach (var wrapper in gradient.AnimationCurves)
+                {
+                    wrapper.FlattenKey(context.key);
+                }
             }
         }
     }
@@ -402,7 +525,11 @@ public class CustomGradientCtrl : CommonCtrl
         if ((context != null) && !context.curveWrapper.IsFreeSmooth(context.key))
         {
             //Undo.RecordObject(Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyFreeSmooth(context.key);
+            //context.curveWrapper.SetKeyFreeSmooth(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyFreeSmooth(context.key);
+            }
         }
     }
 
@@ -411,7 +538,11 @@ public class CustomGradientCtrl : CommonCtrl
         KeyframeContext context = userData as KeyframeContext;
         if ((context != null) && !context.curveWrapper.IsRightFree(context.key))
         {
-            context.curveWrapper.SetKeyBroken(context.key);
+            //context.curveWrapper.SetKeyBroken(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyBroken(context.key);
+            }
         }
     }
 
@@ -420,7 +551,10 @@ public class CustomGradientCtrl : CommonCtrl
         if ((userData is KeyframeContext context) && !context.curveWrapper.IsLeftConstant(context.key))
         {
             //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyLeftConstant(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyLeftConstant(context.key);
+            }
             //this.haveCurvesChanged = true;
             //EditorUtility.SetDirty(base.Wrapper.Behaviour);
         }
@@ -432,7 +566,11 @@ public class CustomGradientCtrl : CommonCtrl
         if ((context != null) && !context.curveWrapper.IsLeftFree(context.key))
         {
             //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyLeftFree(context.key);
+            //context.curveWrapper.SetKeyLeftFree(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyLeftFree(context.key);
+            }
             //this.haveCurvesChanged = true;
             //EditorUtility.SetDirty(base.Wrapper.Behaviour);
         }
@@ -443,8 +581,11 @@ public class CustomGradientCtrl : CommonCtrl
         KeyframeContext context = userData as KeyframeContext;
         if ((context != null) && !context.curveWrapper.IsLeftLinear(context.key))
         {
-            //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyLeftLinear(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyLeftLinear(context.key);
+            }
+            //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");          
             //this.haveCurvesChanged = true;
             //EditorUtility.SetDirty(base.Wrapper.Behaviour);
         }
@@ -456,7 +597,10 @@ public class CustomGradientCtrl : CommonCtrl
         if ((context != null) && !context.curveWrapper.IsRightConstant(context.key))
         {
             //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyRightConstant(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyRightConstant(context.key);
+            }
             //this.haveCurvesChanged = true;
             //EditorUtility.SetDirty(base.Wrapper.Behaviour);
         }
@@ -468,7 +612,11 @@ public class CustomGradientCtrl : CommonCtrl
         if ((context != null) && !context.curveWrapper.IsRightFree(context.key))
         {
             //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyRightFree(context.key);
+            //context.curveWrapper.SetKeyRightFree(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyRightFree(context.key);
+            }
             //this.haveCurvesChanged = true;
             //EditorUtility.SetDirty(base.Wrapper.Behaviour);
         }
@@ -476,10 +624,14 @@ public class CustomGradientCtrl : CommonCtrl
 
     private void SetKeyRightLinear(object userData)
     {
-        if ((userData is KeyframeContext context) && !context.curveWrapper.IsLeftLinear(context.key))
+        if ((userData is KeyframeContext context) && !context.curveWrapper.IsRightLinear(context.key))
         {
             //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyRightLinear(context.key);
+            //context.curveWrapper.SetKeyRightLinear(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyRightLinear(context.key);
+            }
             //this.haveCurvesChanged = true;
             //EditorUtility.SetDirty(base.Wrapper.Behaviour);
         }
@@ -490,8 +642,11 @@ public class CustomGradientCtrl : CommonCtrl
         KeyframeContext context = userData as KeyframeContext;
         if ((context != null) && (!context.curveWrapper.IsRightConstant(context.key) || !context.curveWrapper.IsLeftConstant(context.key)))
         {
-            context.curveWrapper.SetKeyLeftConstant(context.key);
-            context.curveWrapper.SetKeyRightConstant(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyLeftConstant(context.key);
+                wrapper.SetKeyRightConstant(context.key);
+            }
         }
     }
 
@@ -501,9 +656,11 @@ public class CustomGradientCtrl : CommonCtrl
         if ((context != null) && (!context.curveWrapper.IsRightFree(context.key) || !context.curveWrapper.IsLeftFree(context.key)))
         {
             //Undo.RecordObject(Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyLeftFree(context.key);
-            context.curveWrapper.SetKeyRightFree(context.key);
-
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyLeftFree(context.key);
+                wrapper.SetKeyRightFree(context.key);
+            }
             //EditorUtility.SetDirty(Wrapper.Behaviour);
         }
     }
@@ -514,8 +671,11 @@ public class CustomGradientCtrl : CommonCtrl
         if ((context != null) && (!context.curveWrapper.IsRightLinear(context.key) || !context.curveWrapper.IsLeftLinear(context.key)))
         {
             //Undo.RecordObject(Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
-            context.curveWrapper.SetKeyLeftLinear(context.key);
-            context.curveWrapper.SetKeyRightLinear(context.key);
+            foreach (var wrapper in gradient.AnimationCurves)
+            {
+                wrapper.SetKeyLeftLinear(context.key);
+                wrapper.SetKeyRightLinear(context.key);
+            }
         }
     }
 }

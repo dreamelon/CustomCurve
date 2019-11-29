@@ -181,8 +181,9 @@ public class CustomCurveControl : CommonCtrl
         scale = state.scale;
         translation = state.translation;
         int controlID1 = GUIUtility.GetControlID("KeyframeControl".GetHashCode(), FocusType.Passive);
-        foreach (var wrapper in memberCurveWrapper.AnimationCurves)
+        for (int j = memberCurveWrapper.AnimationCurves.Length-1; j >= 0; j--)
         {
+            var wrapper = memberCurveWrapper.AnimationCurves[j];
             for (int i = 0; i < wrapper.KeyframeCount; i++)
             {
                 Keyframe keyframe = wrapper.GetKeyframe(i);
@@ -509,7 +510,7 @@ public class CustomCurveControl : CommonCtrl
 
     private void SetKeyRightLinear(object userData)
     {
-        if ((userData is KeyframeContext context) && !context.curveWrapper.IsLeftLinear(context.key))
+        if ((userData is KeyframeContext context) && !context.curveWrapper.IsRightLinear(context.key))
         {
             //Undo.RecordObject(base.Wrapper.Behaviour, "Changed Keyframe Tangent Mode");
             context.curveWrapper.SetKeyRightLinear(context.key);

@@ -4,16 +4,12 @@ using UnityEngine;
 
 public abstract class Singleton<T> where T : class, new()
 {
-    private static T m_instance;
+    private static T m_instance = null;
 
-    protected Singleton()
-    {
-
-    } 
     public T Instance()
     {
-        if (m_instance != null)
-            return m_instance;
-        else return new T();
-    }
+        if (m_instance == null)
+            m_instance = new T();
+        return m_instance;
+    }  
 }
