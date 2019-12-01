@@ -28,15 +28,6 @@ public class CustomCurveWrapper
         Keyframe kf = new Keyframe(time, value);
         int index = this.curve.AddKey(kf);
 
-        //for (int j = this.curve.length - 1; j >= 0; j--)
-        //{
-        //    //修改KeyframeControls中存储的关键点的序号，都加上1
-        //    CustomKeyframeWrapper keyframeWrapper = this.GetKeyframeWrapper(j);
-        //    //if (keyframeWrapper.index >= index)
-        //    //{
-        //    //    keyframeWrapper.index++;
-        //    //}
-        //}
         this.KeyframeControls.Add(this.CreateKeyframeWrapper(curve.length - 1));
         return index;
     }
@@ -49,13 +40,15 @@ public class CustomCurveWrapper
 
     internal void FlattenKey(int index)
     {
-        Keyframe keyframe2 = this.curve[index];
-        Keyframe keyframe3 = this.curve[index];
-        Keyframe key = new Keyframe(keyframe2.time, keyframe3.value, 0f, 0f) {
+        Keyframe keyframe = this.curve[index];
+        Keyframe key = new Keyframe(keyframe.time, keyframe.value, 0f, 0f)
+        {
             tangentMode = 0
         };
-        //AnimationUtility.SetKeyLeftTangentMode(curve, index, AnimationUtility.TangentMode.Auto);
         this.curve.MoveKey(index, key);
+        //curve.keys[index].inTangent = 0;
+        //curve.keys[index].outTangent = 0;
+        //curve.keys[index].tangentMode = 0;
     }
 
     public Vector2 GetInTangentScreenPosition(int index) => 

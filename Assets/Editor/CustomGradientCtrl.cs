@@ -23,7 +23,7 @@ public class CustomGradientCtrl : CommonCtrl
     {
         DrawCurve();
         DrawKey();
-        DrawGradient(state);
+        //DrawGradient(state);
     }
 
     private void DrawGradient(ControlState state)
@@ -61,6 +61,10 @@ public class CustomGradientCtrl : CommonCtrl
     {
         foreach (var wrapper in gradient.AnimationCurves)
         {
+            if(wrapper.KeyframeCount == 0)
+            {
+                //Handles.DrawDottedLine(new Vector3(), )
+            }
             for (int i = 0; i < (wrapper.KeyframeCount - 1); i++)
             {
                 CustomKeyframeWrapper keyframeWrapper = wrapper.GetKeyframeWrapper(i);
@@ -231,8 +235,9 @@ public class CustomGradientCtrl : CommonCtrl
         scale = state.scale;
         translation = state.translation;
         int controlID1 = GUIUtility.GetControlID("KeyframeControl".GetHashCode(), FocusType.Passive);
-        foreach (var wrapper in gradient.AnimationCurves)
+        for (int j = gradient.AnimationCurves.Length - 1; j >= 0; j--)
         {
+            var wrapper = gradient.AnimationCurves[j];
             for (int i = 0; i < wrapper.KeyframeCount; i++)
             {
                 Keyframe keyframe = wrapper.GetKeyframe(i);

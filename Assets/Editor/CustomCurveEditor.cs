@@ -70,13 +70,13 @@ public class CustomCurveEdit2 : EditorWindow
         UpdateTranslationAndScale(curveArea);
         DrawGrid(curveArea);
 
-        //gradientCtrl.Draw(state);
-        //gradientCtrl.PreUpdate(state, curveArea);
-        //gradientCtrl.HandleInput(state, curveArea);
+        gradientCtrl.Draw(state);
+        gradientCtrl.PreUpdate(state, curveArea);
+        gradientCtrl.HandleInput(state, curveArea);
 
-        curveCtrl.PreUpdate(state, curveArea);
-        curveCtrl.HandleInput(state, curveArea);
-        curveCtrl.Draw();
+        //curveCtrl.PreUpdate(state, curveArea);
+        //curveCtrl.HandleInput(state, curveArea);
+        //curveCtrl.Draw();
 
         GUILayout.EndVertical();
         GUILayout.EndArea();
