@@ -12,25 +12,33 @@ public class CustomGradientCtrl : CommonCtrl
     Vector2 translation;//逻辑坐标系原点相对屏幕坐标系偏移量
     Vector2 scale;//逻辑坐标系缩放量
 
+    private Texture2D colorHandle = new Texture2D(8, 16);
+    private Texture2D colorHandleHighlight = new Texture2D(8, 16);
     Rect[] keyRects;
-    int selectedKeyIndex;
-    const float keyWidth = 10;
-    const float keyHeight = 15;
+    int selectedKeyIndex = -1;
+    const float keyWidth = 8;
+    const float keyHeight = 16;
     bool mouseIsDownOverKey;
     Rect gradientPreviewRect;
 
-    public void Draw(ControlState state)
+    public CustomGradientCtrl()
     {
-        DrawCurve();
-        DrawKey();
-        //DrawGradient(state);
+        colorHandle = EditorGUIUtility.Load("Assets/Resources/GradientColorKey.png") as Texture2D;
+        colorHandleHighlight = EditorGUIUtility.Load("Assets/Resources/GradientColorKey.Highlight.png") as Texture2D;
     }
 
-    private void DrawGradient(ControlState state)
+    public void Draw(ControlState state, Rect curveArea, Vector2 baseWindow)
+    {
+        DrawCurve(state, curveArea, baseWindow);
+        DrawKey();
+        DrawGradient(state, curveArea);
+    }
+
+    private void DrawGradient(ControlState state, Rect curveArea)
     {       
 
-        gradientPreviewRect = new Rect(gradient.StartPoint(), 0, gradient.Width() * state.scale.x, GRADIENT_HEIGHT);
-        Texture2D texture = gradient.GetTexture(state.scale.x);
+        gradientPreviewRect = new Rect(0, 0, curveArea.width, GRADIENT_HEIGHT);
+        Texture2D texture = GetTexture(state, curveArea);
         GUI.DrawTexture(gradientPreviewRect, texture);
 
         //draw gradientkey
@@ -38,33 +46,65 @@ public class CustomGradientCtrl : CommonCtrl
         for (int i = 0; i < gradient.NumKeys; i++)
         {
             CustomGradient.ColourKey key = gradient.GetKey(i);
-            Rect keyRect = new Rect(gradientPreviewRect.x + state.scale.x * key.Time - keyWidth / 2f, gradientPreviewRect.yMax+5, keyWidth, keyHeight);
+            Rect keyRect = new Rect(state.translation.x + state.scale.x * key.Time - keyWidth / 2f, gradientPreviewRect.yMax, keyWidth, keyHeight);
+            GUI.color = key.Colour;
             if (i == selectedKeyIndex)
             {
-                EditorGUI.DrawRect(new Rect(keyRect.x - 2, keyRect.y - 2, keyRect.width + 4, keyRect.height + 4), Color.black);
+                //GUI.color = Color.white;
+                GUI.color = key.Colour;
+                GUI.DrawTexture(keyRect, colorHandleHighlight);
             }
-            EditorGUI.DrawRect(keyRect, key.Colour);
+            else
+            {
+                
+                GUI.DrawTexture(keyRect, colorHandle);
+            }
+            //EditorGUI.ColorField(keyRect, key.Colour);
             keyRects[i] = keyRect;
         }
-
-        Rect settingsRect = new Rect(gradientPreviewRect.x + gradientPreviewRect.width, 0, 50, 100);
-        GUILayout.BeginArea(settingsRect);
+        
+        Rect settingsRect = new Rect(0, GRADIENT_HEIGHT, 50, 20);
         EditorGUI.BeginChangeCheck();
-        Color newColour = EditorGUILayout.ColorField(gradient.GetKey(selectedKeyIndex).Colour);
+        Color newColour = new Color();
+        if (selectedKeyIndex != -1) 
+            newColour = EditorGUI.ColorField(settingsRect, gradient.GetKey(selectedKeyIndex).Colour);
+
         if (EditorGUI.EndChangeCheck())
         {
             gradient.UpdateKeyColour(selectedKeyIndex, newColour);
         }
-        GUILayout.EndArea();
     }
-    private void DrawCurve()
+
+    private Texture2D GetTexture(ControlState state, Rect curveArea)
+    {
+        int width = (int)curveArea.width;
+        Texture2D texture = new Texture2D(width, 1);
+        Color[] colours = new Color[width];
+        for (int i = 0; i < width; i++)
+        {
+            float t = (i  - state.translation.x) / scale.x;
+            colours[i] = gradient.Evaluate(t);
+        }
+        texture.SetPixels(colours);
+        texture.Apply();
+        return texture;
+    }
+    private void DrawCurve(ControlState state, Rect curveArea, Vector2 baseWindow)
     {
         foreach (var wrapper in gradient.AnimationCurves)
         {
-            if(wrapper.KeyframeCount == 0)
-            {
-                //Handles.DrawDottedLine(new Vector3(), )
-            }
+            //if(wrapper.KeyframeCount == 0)
+            //{
+            //    Handles.color = Color.yellow;
+            //    float temp = (baseWindow.y / 2 - curveArea.height + state.translation.y)*2 / baseWindow.y;
+            //    Handles.DrawDottedLine(new Vector3(0, temp), new Vector3(1, temp), 0.05f);
+            //}
+            //else if(wrapper.KeyframeCount == 1)
+            //{
+            //    CustomKeyframeWrapper kfWrapper = wrapper.GetKeyframeWrapper(0); 
+            //    Handles.color = wrapper.Color;
+            //    Handles.DrawDottedLine(new Vector3(0, kfWrapper.ScreenPosition.y), new Vector3(curveArea.width, kfWrapper.ScreenPosition.y), 10f);
+            //}
             for (int i = 0; i < (wrapper.KeyframeCount - 1); i++)
             {
                 CustomKeyframeWrapper keyframeWrapper = wrapper.GetKeyframeWrapper(i);
@@ -175,7 +215,6 @@ public class CustomGradientCtrl : CommonCtrl
     public void HandleInput(ControlState state, Rect curveArea)
     {
         HandleKeyframeInput(state, curveArea);
-        HandleCurveCanvasInput(state);
         HandleGradientInput(state);
     }
 
@@ -194,11 +233,12 @@ public class CustomGradientCtrl : CommonCtrl
                 {
                     mouseIsDownOverKey = true;
                     selectedKeyIndex = i;
+
                     break;
                 }
             }
 
-            if (!mouseIsDownOverKey && temp.Contains(guiEvent.mousePosition))
+            if (!mouseIsDownOverKey && temp.Contains(guiEvent.mousePosition) && guiEvent.clickCount == 2)
             {
                 float keyTime = (guiEvent.mousePosition.x - state.translation.x) / state.scale.x;
                 Color interpolatedColour = gradient.Evaluate(keyTime);    
@@ -216,16 +256,29 @@ public class CustomGradientCtrl : CommonCtrl
         if (mouseIsDownOverKey && guiEvent.type == EventType.MouseDrag && guiEvent.button == 0)
         {
             float keyTime = (guiEvent.mousePosition.x - state.translation.x) / state.scale.x;
+            for(int i = 0; i<gradient.NumKeys; i++)
+            {
+                if (keyTime.Equals(gradient.GetKey(i).Time))
+                    keyTime += 0.1f;
+            }
             selectedKeyIndex = gradient.UpdateKeyTime(selectedKeyIndex, keyTime);
         }
         
       
         if (guiEvent.keyCode == KeyCode.Delete && guiEvent.type == EventType.KeyDown)
         {
-            gradient.RemoveKey(selectedKeyIndex);
-            if (selectedKeyIndex >= gradient.NumKeys)
+            for (int i = 0; i < keyRects.Length; i++)
             {
-                selectedKeyIndex--;
+                if (keyRects[i].Contains(guiEvent.mousePosition))
+                {
+                    gradient.RemoveKey(selectedKeyIndex);
+                    if (selectedKeyIndex >= gradient.NumKeys)
+                    {
+                        selectedKeyIndex--;
+                    }
+
+                    break;
+                }
             }
         }
     }
@@ -245,6 +298,13 @@ public class CustomGradientCtrl : CommonCtrl
 
                 Vector2 keyframeScreenPosition = wrapper.GetKeyframeScreenPosition(i);
                 Rect rect = new Rect(keyframeScreenPosition.x - 4f, keyframeScreenPosition.y - 4f, 8f, 8f);
+                if (rect.Contains(Event.current.mousePosition))
+                {                   
+                    
+                    //EditorGUILayout.LabelField("坐标:", "(" + keyframe.time.ToString() + ","+ keyframe.value.ToString() + ")");
+                    Rect pos = new Rect(keyframeScreenPosition.x - 40f, keyframeScreenPosition.y - 20f, 80f, 40f);
+                    EditorGUI.LabelField(pos, "(" + keyframe.time.ToString("0.00") + "," + keyframe.value.ToString("0.00") + ")");
+                }
                 switch (Event.current.GetTypeForControl(controlID1))
                 {
                     case EventType.MouseDown:
@@ -421,36 +481,6 @@ public class CustomGradientCtrl : CommonCtrl
                 }
                 continue;
             }
-        }
-    }
-    //添加关键帧
-    private void AddKey(object userdata)
-    {
-        CurvesContext context = userdata as CurvesContext;
-        foreach (var wrapper in gradient.AnimationCurves)
-        {
-            float value = wrapper.Evaluate(context.time);
-            wrapper.AddKey(context.time, value);
-        }
-    }
-
-    //显示添加关键帧的菜单
-    private void ShowCurveCanvasContextMenu(CurvesContext curvesContext)
-    {
-        GenericMenu menu = new GenericMenu();
-        menu.AddItem(new GUIContent("Add Keyframe"), false, new GenericMenu.MenuFunction2(AddKey), curvesContext);
-        menu.ShowAsContext();
-    }
-    //处理添加关键帧
-    private void HandleCurveCanvasInput(ControlState state)
-    {
-        int controlID = GUIUtility.GetControlID("Curve".GetHashCode(), FocusType.Passive);
-        if ((Event.current.GetTypeForControl(controlID) == EventType.MouseDown) && (Event.current.button == 1))
-        {
-            float time = (Event.current.mousePosition.x - state.translation.x) / state.scale.x;
-            //CurvesContext curvecontext = new CurvesContext(time);
-            ShowCurveCanvasContextMenu(new CurvesContext(time));
-            Event.current.Use();
         }
     }
 

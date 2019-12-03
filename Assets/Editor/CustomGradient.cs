@@ -111,31 +111,20 @@ public class CustomGradient
         return temp;
     }
 
-    public Texture2D GetTexture(float scale)
+    public Texture2D GetTexture(int width)
     {
-        float len = AnimationCurves[0].GetKeyframe(NumKeys - 1).time - AnimationCurves[0].GetKeyframe(0).time;
-        int width = (int)(scale * len);
         Texture2D texture = new Texture2D(width, 1);
         Color[] colours = new Color[width];
         for (int i = 0; i < width; i++)
         {
-            float t = len * i / (width - 1);
+            float t = i / (width - 1);
             colours[i] = new Color(AnimationCurves[0].Evaluate(t), AnimationCurves[1].Evaluate(t), AnimationCurves[2].Evaluate(t));
         }
         texture.SetPixels(colours);
         texture.Apply();
         return texture;
     }
-    public float Width()
-    {
-        float width = AnimationCurves[0].GetKeyframe(NumKeys - 1).time - AnimationCurves[0].GetKeyframe(0).time;
-        return width;
-    }
-    public float StartPoint()
-    {
-        CustomCurveWrapper wrapper = AnimationCurves[0];
-        return wrapper.GetKeyframeScreenPosition(0).x;
-    }
+
 
     [System.Serializable]
     public struct ColourKey

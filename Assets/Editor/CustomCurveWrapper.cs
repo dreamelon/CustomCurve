@@ -9,7 +9,7 @@ public class CustomCurveWrapper
     public int Id;
     private List<CustomKeyframeWrapper> KeyframeControls = new List<CustomKeyframeWrapper>();
     //public string Label;
-
+    
     public CustomCurveWrapper(Color color, AnimationCurve curve, int id)
     {
         Color = color;
@@ -27,7 +27,11 @@ public class CustomCurveWrapper
     {
         Keyframe kf = new Keyframe(time, value);
         int index = this.curve.AddKey(kf);
-
+   
+        if(index != -1)
+            curve.SmoothTangents(index, 0f);
+        //AnimationUtility.SetKeyLeftTangentMode(curve, index, AnimationUtility.TangentMode.ClampedAuto);
+        //AnimationUtility.SetKeyRightTangentMode(curve, index, AnimationUtility.TangentMode.ClampedAuto);
         this.KeyframeControls.Add(this.CreateKeyframeWrapper(curve.length - 1));
         return index;
     }
